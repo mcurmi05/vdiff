@@ -50,7 +50,7 @@ function apiErrorMessage(status: number, body: Record<string, unknown>): string 
   return `vdiff API error (HTTP ${status}): ${detail}`;
 }
 
-const server = new McpServer({ name: "vdiff", version: "0.1.1" });
+const server = new McpServer({ name: "vdiff", version: "0.1.2" });
 
 server.registerTool(
   "resolve_package",
