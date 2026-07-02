@@ -3,3 +3,4 @@ dist/
 .env
 graphify-out/
 .serena/
+docs/breaking-change-api-spec.md

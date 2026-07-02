@@ -22,7 +22,7 @@ Existing tools only solve part of this. Version lookup tools tell the agent what
 
 vdiff answers exactly that. Diffs are computed from the package's own type declarations rather than changelogs, so the output reflects the real exported surface, and every response carries a confidence score so the consumer knows how much to trust it.
 
-Full product spec: [docs/breaking-change-api-spec.md](docs/breaking-change-api-spec.md). Endpoint reference: [docs/api.md](docs/api.md).
+Endpoint reference: [docs/api.md](docs/api.md).
 
 ## How it works
 
@@ -109,8 +109,7 @@ src/
     migrate.ts      applies schema
 mcp/                vdiff-mcp, the MCP server wrapping this API (published to npm)
 docs/
-  breaking-change-api-spec.md   full product spec
-  api.md                        endpoint reference, kept current with the code
+  api.md            endpoint reference, kept current with the code
 ```
 
 ## Tests
