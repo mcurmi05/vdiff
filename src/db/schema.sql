@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS diffs (
   version_to TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'complete', 'failed')),
   breaking_changes JSONB,
+  types_source JSONB,
   error TEXT,
   confidence_score REAL,
   source_tier TEXT CHECK (source_tier IN ('structural', 'changelog', 'mixed')),
@@ -32,6 +33,9 @@ CREATE TABLE IF NOT EXISTS diffs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (package_id, version_from, version_to)
 );
+
+-- idempotent upgrade for databases created before types_source existed
+ALTER TABLE diffs ADD COLUMN IF NOT EXISTS types_source JSONB;
 
 -- usage metering / future billing (spec §6, §10)
 CREATE TABLE IF NOT EXISTS diff_requests_log (

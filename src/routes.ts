@@ -63,12 +63,13 @@ export async function routes(app: FastifyInstance) {
       id: number;
       status: string;
       breaking_changes: unknown;
+      types_source: unknown;
       error: string | null;
       confidence_score: number;
       source_tier: string;
       created_at: string;
     }>(
-      `SELECT id, status, breaking_changes, error, confidence_score, source_tier, created_at
+      `SELECT id, status, breaking_changes, types_source, error, confidence_score, source_tier, created_at
        FROM diffs WHERE package_id = $1 AND version_from = $2 AND version_to = $3`,
       [packageId, from, to],
     );
@@ -111,14 +112,21 @@ export async function routes(app: FastifyInstance) {
       const stored = await query<{
         status: string;
         breaking_changes: unknown;
+        types_source: unknown;
         confidence_score: number;
         source_tier: string;
       }>(
         `UPDATE diffs SET status = 'complete', breaking_changes = $2,
-           confidence_score = $3, source_tier = $4, computed_at = now()
+           confidence_score = $3, source_tier = $4, types_source = $5, computed_at = now()
          WHERE id = $1
-         RETURNING status, breaking_changes, confidence_score, source_tier`,
-        [diffId, JSON.stringify(result.breaking_changes), result.confidence_score, result.source_tier],
+         RETURNING status, breaking_changes, types_source, confidence_score, source_tier`,
+        [
+          diffId,
+          JSON.stringify(result.breaking_changes),
+          result.confidence_score,
+          result.source_tier,
+          JSON.stringify(result.types_source),
+        ],
       );
       return diffResponse(pkg!, from, to, stored.rows[0]);
     } catch (err) {
@@ -147,7 +155,12 @@ function diffResponse(
   pkg: string,
   from: string,
   to: string,
-  row: { breaking_changes: unknown; confidence_score: number; source_tier: string },
+  row: {
+    breaking_changes: unknown;
+    types_source: unknown;
+    confidence_score: number;
+    source_tier: string;
+  },
 ) {
   return {
     ecosystem: "npm",
@@ -157,6 +170,7 @@ function diffResponse(
     status: "complete",
     confidence: row.confidence_score,
     source_tier: row.source_tier,
+    types_source: row.types_source,
     breaking_changes: row.breaking_changes,
   };
 }
