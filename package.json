@@ -2,7 +2,8 @@
   "name": "vdiff-api",
   "version": "0.1.0",
   "private": true,
-  "description": "Breaking-change diff API for npm packages — structured, machine-readable diffs of what actually broke between two versions.",
+  "license": "FSL-1.1-MIT",
+  "description": "Breaking-change diff API for npm packages: structured, machine-readable diffs of what actually broke between two versions.",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

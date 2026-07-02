@@ -1,58 +1,63 @@
 # vdiff-API
 
-Breaking-change diff API for npm packages. Given a package and two versions, returns a structured, machine-readable diff of what actually broke: removed exports, changed signatures, kind changes — so coding agents stop generating code against APIs that no longer exist.
+A breaking-change diff API for npm packages. Given a package and two versions, it returns a structured, machine-readable list of what actually broke: removed exports, changed function signatures, and removed or changed class and interface members. Each entry includes the before and after signatures plus a short migration note.
 
-## Why
+Live at `https://vdiff-api.onrender.com`. Most easily consumed through the MCP server, [vdiff-mcp](mcp/README.md):
 
-LLMs write code against the API surface they learned during training. When a dependency has moved on — a function renamed, a required parameter added, an export removed — the model still confidently emits the old call. Version-lookup tools say *what version is current*; documentation tools say *what the docs say now*. Neither answers the question an agent mid-edit actually has: **"what changed between the version I know and the version installed?"** vdiff-API answers exactly that, as structured data with an honest confidence score.
+```bash
+claude mcp add vdiff -- npx -y vdiff-mcp
+```
 
-Full product spec: [docs/breaking-change-api-spec.md](docs/breaking-change-api-spec.md) · API reference: [docs/api.md](docs/api.md)
+Or call the REST API directly:
+
+```bash
+curl "https://vdiff-api.onrender.com/v1/diff?ecosystem=npm&package=zod&from=3.24.0&to=4.0.0"
+```
+
+## Why this exists
+
+LLMs learn a package's API surface during training, then the package moves on. When a coding agent writes code against `zod` or `express`, it writes for the version it remembers, which is often not the version in your lockfile. The result is confident code that calls functions that were renamed or removed two majors ago.
+
+Existing tools only solve part of this. Version lookup tools tell the agent what the current version is. Documentation tools tell it what the docs say today. Neither answers the question the agent actually has mid-edit: "what changed between the version I know and the version installed here?"
+
+vdiff-API answers exactly that. Diffs are computed from the package's own type declarations rather than changelogs, so the output reflects the real exported surface, and every response carries a confidence score so the consumer knows how much to trust it.
+
+Full product spec: [docs/breaking-change-api-spec.md](docs/breaking-change-api-spec.md). Endpoint reference: [docs/api.md](docs/api.md).
 
 ## How it works
 
-1. **Resolve** — package metadata, versions, and dist-tags from the npm registry.
-2. **Extract** — for each of the two versions, download the tarball, keep only `.d.ts` files, and build a table of public exports (functions, classes, members, normalized call signatures) with the TypeScript compiler API. Bundled declarations are preferred; packages that ship none fall back to their DefinitelyTyped `@types/*` package, version-matched by `major.minor`.
-3. **Compare** — diff the two export tables into typed change entries (`export_removed`, `signature_changed`, `member_removed`, …), each with before/after signatures and a short migration note.
-4. **Cache & meter** — results stored in Postgres keyed on (package, from, to); every request logged with cache-hit status and user agent for future usage-based billing. First diff ~1–3 s, cached ~instant.
-5. **Guard** — per-IP rate limits (diff 30/min, resolve 120/min), a cap on simultaneous diff computations, size limits on tarballs/declarations, and registry fetch timeouts keep one instance safe to expose publicly.
+1. **Resolve.** Fetch package metadata, versions and dist-tags from the npm registry.
+2. **Extract.** For each of the two versions, download the tarball, keep only the `.d.ts` files, and build a table of public exports (functions, classes, members, normalized call signatures) using the TypeScript compiler API. Bundled declarations are preferred; packages that ship none fall back to the matching DefinitelyTyped `@types/*` package, version-matched by `major.minor`.
+3. **Compare.** Diff the two export tables into typed change entries (`export_removed`, `signature_changed`, `member_removed` and so on), each with before/after signatures and a migration note.
+4. **Cache and meter.** Results are stored in Postgres keyed on (package, from, to), so each version pair is computed once, ever. Every request is logged with cache-hit status and user agent.
+5. **Guard.** Per-IP rate limits, a cap on simultaneous diff computations, size limits on tarballs and extracted declarations, and fetch timeouts keep the service safe to expose publicly.
 
-Structural diffing is the ground truth by design (spec §4): signatures come from parsed type declarations, not changelog prose, so the output can't hallucinate. Confidence is `0.9` for bundled types, `0.8` when `@types/*` is involved — type-level changes only; behavior changes with no type change are invisible.
+Diffs are type-level: a runtime behavior change that leaves the types untouched is invisible. Responses using bundled types carry confidence `0.9`; responses using community-maintained `@types/*` declarations carry `0.8`.
+
+## API overview
+
+| Endpoint          | Purpose                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `GET /v1/diff`    | Breaking-change diff between two versions (`from` required, `to` defaults to latest) |
+| `GET /v1/resolve` | Latest version and dist-tags for a package                           |
+| `GET /healthz`    | Liveness check                                                       |
+
+See [docs/api.md](docs/api.md) for parameters, response shapes, change types, error codes and rate limits.
 
 ## Stack
 
-| Layer      | Choice                              | Why                                                                             |
-| ---------- | ----------------------------------- | ------------------------------------------------------------------------------- |
-| Runtime    | Node 20+, full TypeScript           | Phase 1 is npm-only and `.d.ts` diffing needs the TS compiler API — one language |
-| API        | Fastify 5                           | Fast, minimal, good TS support                                                  |
-| Diffing    | `typescript` compiler API           | Structured symbol tables from `.d.ts`, the core IP                              |
-| Database   | Postgres 18 (Docker local, Neon prod) | JSONB for variable-shape diff payloads, SQL for billing/analytics             |
-| Registry   | npm registry HTTP API + `tar`       | Packuments and tarball extraction, declarations only                            |
-| Tests      | Vitest                              | Unit tests for compare logic and `@types` version matching                      |
+| Layer    | Choice                                | Why                                                                 |
+| -------- | ------------------------------------- | ------------------------------------------------------------------- |
+| Runtime  | Node 20+, TypeScript                  | npm-only `.d.ts` diffing needs the TS compiler API, so one language |
+| API      | Fastify 5                             | Fast, minimal, good TypeScript support                              |
+| Diffing  | `typescript` compiler API             | Structured symbol tables from `.d.ts` files, the core of the product |
+| Database | Postgres 18 (Docker local, Neon prod) | JSONB for variable-shape diff payloads, SQL for billing and analytics |
+| Registry | npm registry HTTP API + `tar`         | Packuments and tarball extraction, declarations only                |
+| Tests    | Vitest                                | Unit tests for compare logic and `@types` version matching          |
 
-Deployment plan: PaaS (Render/Fly/Railway) first — code stays cloud-agnostic (plain container + `DATABASE_URL`), AWS migration possible later if a customer or compliance need justifies it (spec §9a).
+The code is cloud-agnostic: a plain container plus a `DATABASE_URL`. It currently runs on Render with Neon Postgres.
 
-## Project layout
-
-```
-src/
-  index.ts          Fastify bootstrap, /healthz
-  routes.ts         /v1/resolve, /v1/diff — validation, cache, dedup, metering
-  registry/npm.ts   packument fetch, tarball download, .d.ts extraction
-  diff/
-    symbols.ts      .d.ts → symbol table (TS compiler API)
-    compare.ts      symbol table diff → breaking changes
-    engine.ts       orchestration, @types/* fallback, confidence
-  db/
-    schema.sql      packages, versions, diffs, diff_requests_log
-    migrate.ts      applies schema
-mcp/
-  src/index.ts      vdiff-mcp — MCP server wrapping the hosted REST API (own package, publishable via npx)
-docs/
-  breaking-change-api-spec.md   full product spec
-  api.md                        endpoint reference (kept current with code)
-```
-
-## Run locally
+## Running it yourself
 
 ```bash
 docker compose up -d      # Postgres 18 on :5432
@@ -61,56 +66,51 @@ npm run db:migrate        # apply src/db/schema.sql
 npm run dev               # API on :3000
 ```
 
-Or containerized (what PaaS will run — applies schema on boot, then serves):
+Or containerized, the way a PaaS runs it (applies the schema on boot, then serves):
 
 ```bash
 docker build -t vdiff-api .
 docker run -p 3000:3000 -e DATABASE_URL="postgres://user:pass@host:5432/db" vdiff-api
 ```
 
-## Endpoints (v1)
+### Configuration
+
+All configuration is via environment variables:
+
+| Env var                  | Default                  | Purpose                                        |
+| ------------------------ | ------------------------ | ----------------------------------------------- |
+| `PORT`                   | `3000`                   | Listen port                                     |
+| `DATABASE_URL`           | local Docker Postgres    | Postgres connection string                      |
+| `RATE_LIMIT_DIFF_MAX`    | `30`                     | Per-IP `/v1/diff` requests per minute           |
+| `RATE_LIMIT_RESOLVE_MAX` | `120`                    | Per-IP `/v1/resolve` requests per minute        |
+| `COMPUTE_CONCURRENCY`    | `2`                      | Max simultaneous diff computations              |
+| `TRUST_PROXY`            | unset                    | Set `true` behind a PaaS proxy so the rate limiter sees real client IPs |
+
+### Hardening notes
+
+- **Rate limiting**: per-IP, in-memory (fine while single-instance). `/healthz` is exempt for platform health checks.
+- **Compute cap**: at most `COMPUTE_CONCURRENCY` uncached diffs compile at once; excess requests get a `503` with `retry-after`. Cached diffs are always served.
+- **Size guards**: tarball downloads are capped at 50 MB (checked via content-length and counted bytes), extracted declarations at 15 MB per version. Oversized packages fail with a clear `422`.
+- **Fetch budgets**: 10 s for packuments, 30 s for tarballs. Tarballs are only fetched from `registry.npmjs.org` over HTTPS.
+
+## Project layout
 
 ```
-GET /v1/resolve?ecosystem=npm&package=zod
-GET /v1/diff?ecosystem=npm&package=zod&from=3.24.0&to=4.0.0   # to defaults to latest
-GET /healthz
-```
-
-See [docs/api.md](docs/api.md) for parameters, response shapes, change types, error codes, rate limits, and the full env-var table.
-
-## Configuration & hardening
-
-All config is env vars (cloud-agnostic, spec §9a):
-
-| Env var                  | Default                                       | Purpose                                     |
-| ------------------------ | --------------------------------------------- | ------------------------------------------- |
-| `PORT`                   | `3000`                                        | Listen port                                 |
-| `DATABASE_URL`           | local Docker Postgres                         | Postgres connection string (Neon in prod)   |
-| `RATE_LIMIT_DIFF_MAX`    | `30`                                          | Per-IP `/v1/diff` requests per minute       |
-| `RATE_LIMIT_RESOLVE_MAX` | `120`                                         | Per-IP `/v1/resolve` requests per minute    |
-| `COMPUTE_CONCURRENCY`    | `2`                                           | Max simultaneous diff computations          |
-| `TRUST_PROXY`            | unset                                         | **Set `true` on any PaaS** — otherwise the rate limiter keys on the proxy's IP, not the client's |
-
-What "safe to expose publicly" means here (spec §13 abuse concerns):
-
-- **Rate limiting** — `@fastify/rate-limit`, per-IP, in-memory (fine while single-instance; needs a shared store if ever scaled out). `/healthz` exempt for platform health checks.
-- **Compute cap** — at most `COMPUTE_CONCURRENCY` uncached diffs compile at once; excess requests get `503` + `retry-after`. Cached diffs always served. Protects the small PaaS instance from CPU pile-up that per-IP limits can't (N IPs × N packages).
-- **Size guards** — tarball downloads capped at 50 MB (checked via content-length *and* counted bytes), extracted `.d.ts` capped at 15 MB per version (tar header sizes, so decompression bombs are bounded). Oversized packages fail with a clear `422`, and the result is not poisoned by a partial extraction.
-- **Fetch budgets** — 10 s packument / 30 s tarball timeouts; tarballs only fetched from `https://registry.npmjs.org` (host pinned, no redirect to attacker-controlled URLs via a poisoned packument).
-- **Input validation** — package names validated against npm's naming rules before hitting the registry; versions must be exact semver.
-- **No internals leakage** — `500`/`502` bodies are generic; real error detail goes to server logs and the `diffs.error` column only.
-
-## Measuring demand
-
-`diff_requests_log` records every `/v1/diff` call with `cache_hit` and `user_agent`. After deploy, watch for distinct consumers / repeat usage:
-
-```sql
-SELECT date_trunc('day', requested_at) AS day,
-       count(*) AS requests,
-       count(*) FILTER (WHERE cache_hit) AS cache_hits,
-       count(DISTINCT user_agent) AS distinct_agents
-FROM diff_requests_log
-GROUP BY 1 ORDER BY 1 DESC;
+src/
+  index.ts          Fastify bootstrap, /healthz
+  routes.ts         /v1/resolve, /v1/diff: validation, cache, dedup, metering
+  registry/npm.ts   packument fetch, tarball download, .d.ts extraction
+  diff/
+    symbols.ts      .d.ts to symbol table (TS compiler API)
+    compare.ts      symbol table diff to breaking changes
+    engine.ts       orchestration, @types/* fallback, confidence
+  db/
+    schema.sql      packages, versions, diffs, diff_requests_log
+    migrate.ts      applies schema
+mcp/                vdiff-mcp, the MCP server wrapping this API (published to npm)
+docs/
+  breaking-change-api-spec.md   full product spec
+  api.md                        endpoint reference, kept current with the code
 ```
 
 ## Tests
@@ -122,8 +122,12 @@ npx tsc --noEmit  # typecheck
 
 ## Roadmap
 
-- **Phase 1 (current)**: npm, structural `.d.ts` diffing, Postgres cache, REST `/diff` + `/resolve`, rate limiting + compute guards — no auth or billing yet. Deployed (Render + Neon, https://vdiff-api.onrender.com); MCP server wrapper built (`mcp/`, [vdiff-mcp](mcp/README.md)). Remaining before launch: publish `vdiff-mcp` to npm + MCP registries.
-- **Phase 2**: PyPI + Python AST diffing, API-key auth + rate limits, pre-computed diffs for top packages, `/history` endpoint.
-- **Phase 3**: LLM-extracted changelog notes as a lower-confidence supplementary source, CI/PR integration (fail dependency-bump PRs with known breaks), private-package support.
+- **Phase 1 (current)**: npm ecosystem, structural `.d.ts` diffing, Postgres cache, REST `/diff` and `/resolve`, rate limiting and compute guards. Deployed, with the MCP server published to npm and the MCP registry.
+- **Phase 2**: PyPI and Python AST diffing, API-key auth and paid tiers, pre-computed diffs for top packages, a `/history` endpoint.
+- **Phase 3**: LLM-extracted changelog notes as a lower-confidence supplementary source, CI integration to flag dependency-bump PRs with known breaks, private-package support.
 
-Monetisation: freemium — generous no-signup free tier (agents bail on signup walls), paid tier for teams/CI volume (spec §10).
+## License
+
+The API and diff engine are licensed under the [Functional Source License, v1.1, MIT Future License](LICENSE.md) (FSL-1.1-MIT): free to use, read and modify for anything except offering a competing service, and each release automatically becomes MIT two years after publication.
+
+The MCP server wrapper in [`mcp/`](mcp/) is [MIT licensed](mcp/LICENSE).
