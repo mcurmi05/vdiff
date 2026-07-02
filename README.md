@@ -1,4 +1,4 @@
-# vdiff-API
+# vdiff
 
 A breaking-change diff API for npm packages. Given a package and two versions, it returns a structured, machine-readable list of what actually broke: removed exports, changed function signatures, and removed or changed class and interface members. Each entry includes the before and after signatures plus a short migration note.
 
@@ -20,7 +20,7 @@ LLMs learn a package's API surface during training, then the package moves on. W
 
 Existing tools only solve part of this. Version lookup tools tell the agent what the current version is. Documentation tools tell it what the docs say today. Neither answers the question the agent actually has mid-edit: "what changed between the version I know and the version installed here?"
 
-vdiff-API answers exactly that. Diffs are computed from the package's own type declarations rather than changelogs, so the output reflects the real exported surface, and every response carries a confidence score so the consumer knows how much to trust it.
+vdiff answers exactly that. Diffs are computed from the package's own type declarations rather than changelogs, so the output reflects the real exported surface, and every response carries a confidence score so the consumer knows how much to trust it.
 
 Full product spec: [docs/breaking-change-api-spec.md](docs/breaking-change-api-spec.md). Endpoint reference: [docs/api.md](docs/api.md).
 

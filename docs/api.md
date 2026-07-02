@@ -1,6 +1,6 @@
-# vdiff-API — API Reference
+# vdiff — API Reference
 
-Reference for the vdiff-API REST endpoints as currently implemented. Updated alongside the code — if this file and the code disagree, the code wins and this file has a bug.
+Reference for the vdiff REST endpoints as currently implemented. Updated alongside the code — if this file and the code disagree, the code wins and this file has a bug.
 
 Base URL (local dev): `http://localhost:3000`
 

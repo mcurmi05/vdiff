@@ -2,6 +2,12 @@
   "name": "vdiff-mcp",
   "version": "0.1.1",
   "mcpName": "io.github.mcurmi05/vdiff-mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcurmi05/vdiff.git",
+    "directory": "mcp"
+  },
+  "homepage": "https://github.com/mcurmi05/vdiff/tree/main/mcp#readme",
   "description": "MCP server that gives coding agents structured breaking-change diffs for npm packages, so they stop writing code against removed or renamed APIs.",
   "type": "module",
   "bin": {

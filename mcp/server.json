@@ -3,7 +3,7 @@
   "name": "io.github.mcurmi05/vdiff-mcp",
   "description": "Breaking-change diffs for npm packages: removed exports, changed signatures, migration notes.",
   "repository": {
-    "url": "https://github.com/mcurmi05/vdiff-API",
+    "url": "https://github.com/mcurmi05/vdiff",
     "source": "github"
   },
   "version": "0.1.1",
@@ -16,7 +16,7 @@
       "environmentVariables": [
         {
           "name": "VDIFF_API_URL",
-          "description": "Base URL of the vdiff-API instance to use (defaults to the hosted https://vdiff-api.onrender.com)",
+          "description": "Base URL of the vdiff API instance to use (defaults to the hosted https://vdiff-api.onrender.com)",
           "isRequired": false
         }
       ]

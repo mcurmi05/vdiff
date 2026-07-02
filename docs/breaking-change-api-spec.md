@@ -1,4 +1,4 @@
-# Project Spec: vdiff-API — A Breaking-Change Diff API for LLMs
+# Project Spec: vdiff — A Breaking-Change Diff API for LLMs
 
 ## 1. One-line pitch
 

@@ -2,7 +2,7 @@
 
 An MCP server that tells coding agents what actually broke between two versions of an npm package.
 
-It wraps [vdiff-API](https://github.com/mcurmi05/vdiff-API), a service that compares the TypeScript type declarations of two package versions and returns a structured list of breaking changes: removed exports, changed function signatures, and removed or changed class and interface members. Each entry includes the before and after signatures plus a short migration note.
+It wraps [vdiff](https://github.com/mcurmi05/vdiff), a service that compares the TypeScript type declarations of two package versions and returns a structured list of breaking changes: removed exports, changed function signatures, and removed or changed class and interface members. Each entry includes the before and after signatures plus a short migration note.
 
 ## Why you might want this
 
@@ -94,7 +94,7 @@ The `confidence` field in every response reflects the source:
 
 | Env var         | Default                          | Description                                        |
 | --------------- | -------------------------------- | --------------------------------------------------- |
-| `VDIFF_API_URL` | `https://vdiff-api.onrender.com` | Base URL of the vdiff-API instance. Point this at your own instance if you self-host the API. |
+| `VDIFF_API_URL` | `https://vdiff-api.onrender.com` | Base URL of the vdiff API instance. Point this at your own instance if you self-host the API. |
 
 ## Limitations
 

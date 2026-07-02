@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * vdiff-mcp — MCP server wrapping the hosted vdiff-API REST service (spec §8).
+ * vdiff-mcp — MCP server wrapping the hosted vdiff REST service (spec §8).
  * Thin protocol layer: no diff logic lives here, it only calls the API.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -47,7 +47,7 @@ async function apiGet(
 
 function apiErrorMessage(status: number, body: Record<string, unknown>): string {
   const detail = body.error ?? body.message ?? JSON.stringify(body);
-  return `vdiff-API error (HTTP ${status}): ${detail}`;
+  return `vdiff API error (HTTP ${status}): ${detail}`;
 }
 
 const server = new McpServer({ name: "vdiff", version: "0.1.1" });
@@ -75,7 +75,7 @@ server.registerTool(
       if (status === 200) return ok(body);
       return fail(apiErrorMessage(status, body));
     } catch (err) {
-      return fail(`could not reach vdiff-API at ${API_URL}: ${(err as Error).message}`);
+      return fail(`could not reach the vdiff API at ${API_URL}: ${(err as Error).message}`);
     }
   }
 );
@@ -134,7 +134,7 @@ server.registerTool(
         return fail(apiErrorMessage(status, body));
       }
     } catch (err) {
-      return fail(`could not reach vdiff-API at ${API_URL}: ${(err as Error).message}`);
+      return fail(`could not reach the vdiff API at ${API_URL}: ${(err as Error).message}`);
     }
   }
 );

@@ -1,4 +1,4 @@
--- vdiff-API schema (spec §6)
+-- vdiff schema (spec §6)
 
 CREATE TABLE IF NOT EXISTS packages (
   id BIGSERIAL PRIMARY KEY,
