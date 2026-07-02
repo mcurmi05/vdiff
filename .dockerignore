@@ -1,0 +1,7 @@
+node_modules
+dist
+graphify-out
+docs
+.git
+.env
+*.md

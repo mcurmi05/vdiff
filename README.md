@@ -58,6 +58,13 @@ npm run db:migrate        # apply src/db/schema.sql
 npm run dev               # API on :3000
 ```
 
+Or containerized (what PaaS will run — applies schema on boot, then serves):
+
+```bash
+docker build -t vdiff-api .
+docker run -p 3000:3000 -e DATABASE_URL="postgres://user:pass@host:5432/db" vdiff-api
+```
+
 ## Endpoints (v1)
 
 ```

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc && cp src/db/schema.sql dist/db/",
     "test": "vitest run",
     "db:migrate": "tsx src/db/migrate.ts"
   },
