@@ -121,14 +121,18 @@ function findTypesEntry(pkgDir: string): string {
   const pkgJsonPath = join(pkgDir, "package.json");
   let declared: string | undefined;
   if (existsSync(pkgJsonPath)) {
-    const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
-    declared =
-      pkg.types ??
-      pkg.typings ??
-      pkg.exports?.["."]?.types ??
-      (typeof pkg.exports?.["."] === "object"
-        ? pkg.exports["."].import?.types ?? pkg.exports["."].require?.types
-        : undefined);
+    try {
+      const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+      declared =
+        pkg.types ??
+        pkg.typings ??
+        pkg.exports?.["."]?.types ??
+        (typeof pkg.exports?.["."] === "object"
+          ? pkg.exports["."].import?.types ?? pkg.exports["."].require?.types
+          : undefined);
+    } catch {
+      // malformed package.json — fall through to the default entry candidates
+    }
   }
   const candidates = [declared, "index.d.ts", "index.d.mts"].filter(
     (c): c is string => !!c,

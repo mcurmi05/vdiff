@@ -44,5 +44,13 @@ CREATE TABLE IF NOT EXISTS diff_requests_log (
   version_from TEXT,
   version_to TEXT,
   requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  cache_hit BOOLEAN NOT NULL
+  cache_hit BOOLEAN NOT NULL,
+  user_agent TEXT
 );
+
+-- idempotent upgrade for databases created before user_agent existed
+ALTER TABLE diff_requests_log ADD COLUMN IF NOT EXISTS user_agent TEXT;
+
+-- usage-summary queries scan by time window
+CREATE INDEX IF NOT EXISTS diff_requests_log_requested_at_idx
+  ON diff_requests_log (requested_at);

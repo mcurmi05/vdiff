@@ -13,7 +13,8 @@ Full product spec: [docs/breaking-change-api-spec.md](docs/breaking-change-api-s
 1. **Resolve** — package metadata, versions, and dist-tags from the npm registry.
 2. **Extract** — for each of the two versions, download the tarball, keep only `.d.ts` files, and build a table of public exports (functions, classes, members, normalized call signatures) with the TypeScript compiler API. Bundled declarations are preferred; packages that ship none fall back to their DefinitelyTyped `@types/*` package, version-matched by `major.minor`.
 3. **Compare** — diff the two export tables into typed change entries (`export_removed`, `signature_changed`, `member_removed`, …), each with before/after signatures and a short migration note.
-4. **Cache & meter** — results stored in Postgres keyed on (package, from, to); every request logged with cache-hit status for future usage-based billing. First diff ~1–3 s, cached ~instant.
+4. **Cache & meter** — results stored in Postgres keyed on (package, from, to); every request logged with cache-hit status and user agent for future usage-based billing. First diff ~1–3 s, cached ~instant.
+5. **Guard** — per-IP rate limits (diff 30/min, resolve 120/min), a cap on simultaneous diff computations, size limits on tarballs/declarations, and registry fetch timeouts keep one instance safe to expose publicly.
 
 Structural diffing is the ground truth by design (spec §4): signatures come from parsed type declarations, not changelog prose, so the output can't hallucinate. Confidence is `0.9` for bundled types, `0.8` when `@types/*` is involved — type-level changes only; behavior changes with no type change are invisible.
 
@@ -73,7 +74,42 @@ GET /v1/diff?ecosystem=npm&package=zod&from=3.24.0&to=4.0.0   # to defaults to l
 GET /healthz
 ```
 
-See [docs/api.md](docs/api.md) for parameters, response shapes, change types, and error codes.
+See [docs/api.md](docs/api.md) for parameters, response shapes, change types, error codes, rate limits, and the full env-var table.
+
+## Configuration & hardening
+
+All config is env vars (cloud-agnostic, spec §9a):
+
+| Env var                  | Default                                       | Purpose                                     |
+| ------------------------ | --------------------------------------------- | ------------------------------------------- |
+| `PORT`                   | `3000`                                        | Listen port                                 |
+| `DATABASE_URL`           | local Docker Postgres                         | Postgres connection string (Neon in prod)   |
+| `RATE_LIMIT_DIFF_MAX`    | `30`                                          | Per-IP `/v1/diff` requests per minute       |
+| `RATE_LIMIT_RESOLVE_MAX` | `120`                                         | Per-IP `/v1/resolve` requests per minute    |
+| `COMPUTE_CONCURRENCY`    | `2`                                           | Max simultaneous diff computations          |
+| `TRUST_PROXY`            | unset                                         | **Set `true` on any PaaS** — otherwise the rate limiter keys on the proxy's IP, not the client's |
+
+What "safe to expose publicly" means here (spec §13 abuse concerns):
+
+- **Rate limiting** — `@fastify/rate-limit`, per-IP, in-memory (fine while single-instance; needs a shared store if ever scaled out). `/healthz` exempt for platform health checks.
+- **Compute cap** — at most `COMPUTE_CONCURRENCY` uncached diffs compile at once; excess requests get `503` + `retry-after`. Cached diffs always served. Protects the small PaaS instance from CPU pile-up that per-IP limits can't (N IPs × N packages).
+- **Size guards** — tarball downloads capped at 50 MB (checked via content-length *and* counted bytes), extracted `.d.ts` capped at 15 MB per version (tar header sizes, so decompression bombs are bounded). Oversized packages fail with a clear `422`, and the result is not poisoned by a partial extraction.
+- **Fetch budgets** — 10 s packument / 30 s tarball timeouts; tarballs only fetched from `https://registry.npmjs.org` (host pinned, no redirect to attacker-controlled URLs via a poisoned packument).
+- **Input validation** — package names validated against npm's naming rules before hitting the registry; versions must be exact semver.
+- **No internals leakage** — `500`/`502` bodies are generic; real error detail goes to server logs and the `diffs.error` column only.
+
+## Measuring demand
+
+`diff_requests_log` records every `/v1/diff` call with `cache_hit` and `user_agent`. After deploy, watch for distinct consumers / repeat usage:
+
+```sql
+SELECT date_trunc('day', requested_at) AS day,
+       count(*) AS requests,
+       count(*) FILTER (WHERE cache_hit) AS cache_hits,
+       count(DISTINCT user_agent) AS distinct_agents
+FROM diff_requests_log
+GROUP BY 1 ORDER BY 1 DESC;
+```
 
 ## Tests
 
@@ -84,7 +120,7 @@ npx tsc --noEmit  # typecheck
 
 ## Roadmap
 
-- **Phase 1 (current)**: npm, structural `.d.ts` diffing, Postgres cache, REST `/diff` + `/resolve` — no auth or billing yet.
+- **Phase 1 (current)**: npm, structural `.d.ts` diffing, Postgres cache, REST `/diff` + `/resolve`, rate limiting + compute guards — no auth or billing yet. Remaining before launch: Neon + Render/Fly signup & deploy (needs my accounts), then MCP server wrapper, then publish to MCP registries.
 - **Phase 2**: PyPI + Python AST diffing, MCP server wrapper (primary distribution channel), API-key auth + rate limits, pre-computed diffs for top packages, `/history` endpoint.
 - **Phase 3**: LLM-extracted changelog notes as a lower-confidence supplementary source, CI/PR integration (fail dependency-bump PRs with known breaks), private-package support.
 
