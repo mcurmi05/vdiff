@@ -120,12 +120,6 @@ npm test          # unit tests (Vitest)
 npx tsc --noEmit  # typecheck
 ```
 
-## Roadmap
-
-- **Phase 1 (current)**: npm ecosystem, structural `.d.ts` diffing, Postgres cache, REST `/diff` and `/resolve`, rate limiting and compute guards. Deployed, with the MCP server published to npm and the MCP registry.
-- **Phase 2**: PyPI and Python AST diffing, API-key auth and paid tiers, pre-computed diffs for top packages, a `/history` endpoint.
-- **Phase 3**: LLM-extracted changelog notes as a lower-confidence supplementary source, CI integration to flag dependency-bump PRs with known breaks, private-package support.
-
 ## License
 
 The API and diff engine are licensed under the [Functional Source License, v1.1, MIT Future License](LICENSE.md) (FSL-1.1-MIT): free to use, read and modify for anything except offering a competing service, and each release automatically becomes MIT two years after publication.
