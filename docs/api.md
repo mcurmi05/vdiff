@@ -7,7 +7,7 @@ Base URL (local dev): `http://localhost:3000`
 ## Quick start (local testing)
 
 ```bash
-docker compose up -d      # Postgres 16 on :5432
+docker compose up -d      # Postgres 18 on :5432
 npm install
 npm run db:migrate        # apply src/db/schema.sql
 npm run dev               # API on :3000

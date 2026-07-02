@@ -25,7 +25,7 @@ Structural diffing is the ground truth by design (spec §4): signatures come fro
 | Runtime    | Node 20+, full TypeScript           | Phase 1 is npm-only and `.d.ts` diffing needs the TS compiler API — one language |
 | API        | Fastify 5                           | Fast, minimal, good TS support                                                  |
 | Diffing    | `typescript` compiler API           | Structured symbol tables from `.d.ts`, the core IP                              |
-| Database   | Postgres 16 (Docker local, Neon prod) | JSONB for variable-shape diff payloads, SQL for billing/analytics             |
+| Database   | Postgres 18 (Docker local, Neon prod) | JSONB for variable-shape diff payloads, SQL for billing/analytics             |
 | Registry   | npm registry HTTP API + `tar`       | Packuments and tarball extraction, declarations only                            |
 | Tests      | Vitest                              | Unit tests for compare logic and `@types` version matching                      |
 
@@ -53,7 +53,7 @@ docs/
 ## Run locally
 
 ```bash
-docker compose up -d      # Postgres 16 on :5432
+docker compose up -d      # Postgres 18 on :5432
 npm install
 npm run db:migrate        # apply src/db/schema.sql
 npm run dev               # API on :3000

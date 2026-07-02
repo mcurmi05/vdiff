@@ -4,7 +4,7 @@
 
 Breaking-change diff API for npm packages — structured `.d.ts` diffs so coding agents stop writing code against removed/renamed APIs. Spec: `docs/breaking-change-api-spec.md`. Architecture and roadmap: `README.md`.
 
-**Stack**: Node 20+ / full TypeScript / Fastify 5 / Postgres 16 (local Docker, Neon in prod) / TS compiler API for diffing / Vitest.
+**Stack**: Node 20+ / full TypeScript / Fastify 5 / Postgres 18 (local Docker, Neon in prod) / TS compiler API for diffing / Vitest.
 
 **Commands**:
 
