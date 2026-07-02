@@ -1,0 +1,39 @@
+{
+  "name": "vdiff-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for vdiff-API — structured breaking-change diffs for npm packages, so coding agents stop writing code against removed or renamed APIs.",
+  "type": "module",
+  "bin": {
+    "vdiff-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "breaking-changes",
+    "npm",
+    "semver",
+    "diff",
+    "typescript"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

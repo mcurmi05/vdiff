@@ -45,6 +45,8 @@ src/
   db/
     schema.sql      packages, versions, diffs, diff_requests_log
     migrate.ts      applies schema
+mcp/
+  src/index.ts      vdiff-mcp — MCP server wrapping the hosted REST API (own package, publishable via npx)
 docs/
   breaking-change-api-spec.md   full product spec
   api.md                        endpoint reference (kept current with code)
@@ -120,8 +122,8 @@ npx tsc --noEmit  # typecheck
 
 ## Roadmap
 
-- **Phase 1 (current)**: npm, structural `.d.ts` diffing, Postgres cache, REST `/diff` + `/resolve`, rate limiting + compute guards — no auth or billing yet. Remaining before launch: Neon + Render/Fly signup & deploy (needs my accounts), then MCP server wrapper, then publish to MCP registries.
-- **Phase 2**: PyPI + Python AST diffing, MCP server wrapper (primary distribution channel), API-key auth + rate limits, pre-computed diffs for top packages, `/history` endpoint.
+- **Phase 1 (current)**: npm, structural `.d.ts` diffing, Postgres cache, REST `/diff` + `/resolve`, rate limiting + compute guards — no auth or billing yet. Deployed (Render + Neon, https://vdiff-api.onrender.com); MCP server wrapper built (`mcp/`, [vdiff-mcp](mcp/README.md)). Remaining before launch: publish `vdiff-mcp` to npm + MCP registries.
+- **Phase 2**: PyPI + Python AST diffing, API-key auth + rate limits, pre-computed diffs for top packages, `/history` endpoint.
 - **Phase 3**: LLM-extracted changelog notes as a lower-confidence supplementary source, CI/PR integration (fail dependency-bump PRs with known breaks), private-package support.
 
 Monetisation: freemium — generous no-signup free tier (agents bail on signup walls), paid tier for teams/CI volume (spec §10).
