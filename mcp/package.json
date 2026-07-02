@@ -1,7 +1,8 @@
 {
   "name": "vdiff-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for vdiff-API — structured breaking-change diffs for npm packages, so coding agents stop writing code against removed or renamed APIs.",
+  "version": "0.1.1",
+  "mcpName": "io.github.mcurmi05/vdiff-mcp",
+  "description": "MCP server that gives coding agents structured breaking-change diffs for npm packages, so they stop writing code against removed or renamed APIs.",
   "type": "module",
   "bin": {
     "vdiff-mcp": "dist/index.js"
