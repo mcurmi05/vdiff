@@ -1,6 +1,35 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+## Project: vdiff-API
+
+Breaking-change diff API for npm packages — structured `.d.ts` diffs so coding agents stop writing code against removed/renamed APIs. Spec: `docs/breaking-change-api-spec.md`. Architecture and roadmap: `README.md`.
+
+**Stack**: Node 20+ / full TypeScript / Fastify 5 / Postgres 16 (local Docker, Neon in prod) / TS compiler API for diffing / Vitest.
+
+**Commands**:
+
+```bash
+docker compose up -d   # local Postgres
+npm run db:migrate     # apply src/db/schema.sql (idempotent)
+npm run dev            # API on :3000
+npm test               # unit tests
+npx tsc --noEmit       # typecheck
+```
+
+**Project rules**:
+
+- `docs/api.md` is the living API reference — any change to endpoints, response shapes, or error codes MUST update it in the same change.
+- Project name is written **vdiff-API** in prose/docs. Exception: `package.json` name stays `vdiff-api` (npm forbids uppercase).
+- Structural diffing is ground truth; never let LLM-extracted prose silently become the data (spec §4). Confidence scores must stay honest: 0.9 bundled types, 0.8 `@types/*`, lower for future changelog tier.
+- Schema changes: keep `src/db/schema.sql` idempotent (`IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`) — it runs on every container boot.
+- Keep code cloud-agnostic: config via env vars (`DATABASE_URL`, `PORT`), no PaaS/AWS-specific APIs. Planned hosting: Render/Fly first, AWS only if a customer/compliance need justifies it (spec §9a).
+- User is learning cloud/hosting concepts — explain infra concepts plainly when introducing them.
+
+---
+
+## Behavioral guidelines
+
+Guidelines to reduce common LLM coding mistakes.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
