@@ -1,0 +1,31 @@
+{
+  "name": "vdiff-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Breaking-change diff API for npm packages — structured, machine-readable diffs of what actually broke between two versions.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "test": "vitest run",
+    "db:migrate": "tsx src/db/migrate.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "fastify": "^5.3.0",
+    "pg": "^8.14.0",
+    "semver": "^7.7.0",
+    "tar": "^7.4.0",
+    "typescript": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/pg": "^8.11.0",
+    "@types/semver": "^7.5.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.1.0"
+  }
+}
