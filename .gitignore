@@ -4,3 +4,4 @@ dist/
 graphify-out/
 .serena/
 docs/breaking-change-api-spec.md
+mcp/RELEASING.md

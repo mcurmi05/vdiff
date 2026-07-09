@@ -6,6 +6,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { readFileSync } from "node:fs";
+
+// single source of truth for the version; package.json ships in the npm tarball
+const { version } = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8")
+) as { version: string };
 
 const API_URL = (process.env.VDIFF_API_URL ?? "https://vdiff-api.onrender.com").replace(/\/+$/, "");
 // First diff for a version pair is computed on demand (can take ~1 min on big
@@ -50,7 +56,7 @@ function apiErrorMessage(status: number, body: Record<string, unknown>): string 
   return `vdiff API error (HTTP ${status}): ${detail}`;
 }
 
-const server = new McpServer({ name: "vdiff", version: "0.1.2" });
+const server = new McpServer({ name: "vdiff", version });
 
 server.registerTool(
   "resolve_package",
